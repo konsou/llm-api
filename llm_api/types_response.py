@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict, Union, Literal
+from typing import List, Optional, TypedDict, Literal
 
 
 class NonChatChoice(TypedDict):

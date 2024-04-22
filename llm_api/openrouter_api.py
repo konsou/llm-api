@@ -1,16 +1,12 @@
 import json
 import os
 
+import colorama
 import requests
 from dotenv import load_dotenv
 
-from llm_api.abc import LlmApi
-from llm_api import types_request, types_response, types_tools
-from text import print_in_color, Color
-
-AVAILABLE_MODELS = [
-    "anthropic/claude-3-haiku:beta",
-]
+from .abc import LlmApi
+from . import types_request, types_response
 
 
 class OpenRouterAPI(LlmApi):
@@ -63,9 +59,7 @@ class OpenRouterAPI(LlmApi):
     def handle_usage(self, response: types_response.Response, tag: str | None = None):
         usage = response.get("usage")
         if not usage:
-            print_in_color(
-                "Response does not contain usage information", color=Color.YELLOW
-            )
+            print_yellow(f"Response does not contain usage information")
             return
 
         input_tokens = usage["prompt_tokens"]
@@ -75,12 +69,15 @@ class OpenRouterAPI(LlmApi):
 
         self.total_cost += cost
 
-        print_in_color(
+        print_yellow(
             f"{f'[{tag}] ' if tag else ''}"
             f"token usage: input {input_tokens} tokens, "
             f"output {output_tokens} tokens, "
             f"total {total_tokens} tokens, "
             f"cost {cost}, "
             f"total cost {self.total_cost}",
-            color=Color.YELLOW,
         )
+
+
+def print_yellow(text: str):
+    print(f"{colorama.Fore.YELLOW}{text}{colorama.Style.RESET_ALL}")
