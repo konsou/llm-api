@@ -3,7 +3,7 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llm_api"
+name = "llm-api"
 version = "0.1.0"
 authors = [{name = "Tomi Javanainen", email = "tomi.javanainen@gmail.com"}]
 description = "A simple wrapper over LLM APIs"
