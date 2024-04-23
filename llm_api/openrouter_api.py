@@ -21,7 +21,7 @@ class OpenRouterAPI(LlmApi):
         load_dotenv()
         self._api_key = os.getenv("OPENROUTER_API_KEY")
 
-    def response_from_messages(
+    def _response_from_messages_implementation(
         self,
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
