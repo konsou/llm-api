@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api"
-version = "0.1.0"
+version = "2024.04.24.1"
 authors = [{name = "Tomi Javanainen", email = "tomi.javanainen@gmail.com"}]
 description = "A simple wrapper over LLM APIs"
 license = {file = "LICENSE"}
@@ -12,4 +12,5 @@ dependencies = [
     "requests",
     "python-dotenv",
     "colorama",
+    "groq",
 ]
