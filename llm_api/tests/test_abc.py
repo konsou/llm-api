@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from llm_api import LlmApi
-from llm_api.abc import ResponseAndUsage, ConfigurationError
+from llm_api.abc import ResponseAndUsage, ConfigurationError, Usage
 
 
 class MockLlmApiSubclass(LlmApi):
@@ -15,7 +15,7 @@ class MockLlmApiSubclass(LlmApi):
         super().__init__(model=model, api_key_name=api_key_name, timeout=timeout)
         self._response_from_messages_implementation = Mock(
             name="_response_from_messages_implementation",
-            return_value=ResponseAndUsage("Test response", 1, 2, 3),
+            return_value=ResponseAndUsage("Test response", Usage(1, 2, 3)),
         )
 
 

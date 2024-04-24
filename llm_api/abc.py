@@ -12,11 +12,16 @@ class ConfigurationError(Exception):
     pass
 
 
-class ResponseAndUsage(NamedTuple):
-    response: str
+class Usage(NamedTuple):
     input_tokens: int
     output_tokens: int
     cost: float | None = None
+    tag: str | None = None
+
+
+class ResponseAndUsage(NamedTuple):
+    response: str
+    usage: Usage
 
 
 class LlmApi(ABC):
@@ -51,16 +56,18 @@ class LlmApi(ABC):
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
     ) -> str:
-        response: ResponseAndUsage = self._response_from_messages_implementation(
+        response: str
+        usage: Usage
+        response, usage = self._response_from_messages_implementation(
             messages=messages, tools=tools, tag=tag
         )
         self.handle_usage(
-            input_tokens=response.input_tokens,
-            output_tokens=response.output_tokens,
-            cost=response.cost,
-            tag=tag,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            cost=usage.cost,
+            tag=usage.tag,
         )
-        return response.response
+        return response
 
     def response_from_prompt(
         self,

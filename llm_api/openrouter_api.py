@@ -1,11 +1,10 @@
 import json
 import os
 
-import colorama
 import requests
 from dotenv import load_dotenv
 
-from .abc import LlmApi
+from .abc import LlmApi, ResponseAndUsage, Usage
 from . import types_request, types_response
 
 
@@ -13,8 +12,10 @@ class OpenRouterAPI(LlmApi):
     def __init__(
         self,
         model: str,
+        api_key_name: str,
+        timeout: int = 5,
     ):
-        super().__init__(model=model)
+        super().__init__(model=model, api_key_name=api_key_name, timeout=timeout)
 
         self.total_cost = 0
 
@@ -26,7 +27,7 @@ class OpenRouterAPI(LlmApi):
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
-    ) -> str:
+    ) -> ResponseAndUsage:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {self._api_key}",
@@ -34,7 +35,6 @@ class OpenRouterAPI(LlmApi):
         request_data = {
             "model": self.model,
             "messages": messages,
-            "repetition_penalty": 1.5,
         }
         if tools:
             request_data["tools"] = tools
@@ -47,37 +47,21 @@ class OpenRouterAPI(LlmApi):
         response.raise_for_status()
         response_json: types_response.Response = response.json()
 
-        self.handle_usage(response_json, tag=tag)
+        usage = self.parse_usage(response_json, tag=tag)
 
         if "message" in response_json["choices"][0]:
             response_message = response_json["choices"][0]["message"]
         else:
             raise ValueError("Response does not contain a message")
 
-        return response_message["content"]
+        return ResponseAndUsage(response_message["content"], usage)
 
-    def handle_usage(self, response: types_response.Response, tag: str | None = None):
-        usage = response.get("usage")
-        if not usage:
-            print_yellow(f"Response does not contain usage information")
-            return
-
-        input_tokens = usage["prompt_tokens"]
-        output_tokens = usage["completion_tokens"]
-        total_tokens = usage["total_tokens"]
-        cost = usage["total_cost"]
-
-        self.total_cost += cost
-
-        print_yellow(
-            f"{f'[{tag}] ' if tag else ''}"
-            f"token usage: input {input_tokens} tokens, "
-            f"output {output_tokens} tokens, "
-            f"total {total_tokens} tokens, "
-            f"cost {cost}, "
-            f"total cost {self.total_cost}",
+    def parse_usage(
+        self, response: types_response.Response, tag: str | None = None
+    ) -> Usage:
+        return Usage(
+            input_tokens=response.get("usage", {}).get("prompt_tokens", 0),
+            output_tokens=response.get("usage", {}).get("completion_tokens", 0),
+            cost=response.get("usage", {}).get("total_cost", 0),
+            tag=tag,
         )
-
-
-def print_yellow(text: str):
-    print(f"{colorama.Fore.YELLOW}{text}{colorama.Style.RESET_ALL}")
