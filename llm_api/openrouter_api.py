@@ -1,26 +1,19 @@
 import json
-import os
 
 import requests
-from dotenv import load_dotenv
 
-from .abc import LlmApi, ResponseAndUsage, Usage
-from . import types_request, types_response
+from llm_api.abc import LlmApi, ResponseAndUsage, Usage
+from llm_api import types_request, types_response
 
 
 class OpenRouterAPI(LlmApi):
     def __init__(
         self,
         model: str,
-        api_key_name: str,
+        api_key_name: str = "OPENROUTER_API_KEY",
         timeout: int = 5,
     ):
         super().__init__(model=model, api_key_name=api_key_name, timeout=timeout)
-
-        self.total_cost = 0
-
-        load_dotenv()
-        self._api_key = os.getenv("OPENROUTER_API_KEY")
 
     def _response_from_messages_implementation(
         self,
@@ -30,7 +23,7 @@ class OpenRouterAPI(LlmApi):
     ) -> ResponseAndUsage:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": f"Bearer {self.api_key}",
         }
         request_data = {
             "model": self.model,
