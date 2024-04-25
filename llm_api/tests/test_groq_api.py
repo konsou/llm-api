@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock
 
 import groq.types.chat.chat_completion
+import httpx
 
 import llm_api.abc
 from llm_api.groq_api import GroqApi
@@ -57,5 +58,27 @@ class TestGroqApi(TestCase):
         self.assertEqual(2, u.output_tokens)
         self.assertEqual(0, u.cost)  # Groq is free at least on 2024-04-24
         self.assertEqual("test tag", u.tag)
+
+    def test_rate_limit(self):
+        mock_create_completion = Mock(
+            side_effect=groq.RateLimitError(
+                "Test Rate Limit Error",
+                response=Mock(spec=httpx.Response, status_code=429),
+                body=None,
+            )
+        )
+        self.api._client.chat.completions.create = mock_create_completion
+        with patch("time.sleep") as mock_sleep, self.assertRaises(
+            groq.RateLimitError, msg="Should re-raise RateLimitError after 3 tries"
+        ):
+            self.api.response_from_messages(
+                [{"role": "user", "content": "rate limit test"}]
+            )
+        self.assertEqual(
+            3, len(mock_create_completion.call_args_list), "Should try 3 times"
+        )
+        self.assertEqual(
+            2, len(mock_sleep.call_args_list), "Should sleep 2 times between tries"
+        )
 
     # TODO: actual tests for actual completions

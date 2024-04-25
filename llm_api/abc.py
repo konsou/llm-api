@@ -2,10 +2,10 @@ import os
 from abc import ABC, abstractmethod
 from typing import NamedTuple
 
-import colorama
 from dotenv import load_dotenv
 
 from . import types_request
+from .text import print_yellow, print_cost
 
 
 class ConfigurationError(Exception):
@@ -88,15 +88,11 @@ class LlmApi(ABC):
         if cost is not None:
             self.total_cost += cost
 
-        print_yellow(
+        print_cost(
             f"{f'[{tag}] ' if tag else ''}"
+            f"[{self.model}] "
             f"token usage: input {input_tokens} tokens, "
             f"output {output_tokens} tokens, "
-            f"total {input_tokens + output_tokens} tokens, "
             f"cost {cost}, "
             f"total cost {self.total_cost}",
         )
-
-
-def print_yellow(text: str):
-    print(f"{colorama.Fore.YELLOW}{text}{colorama.Style.RESET_ALL}")

@@ -1,8 +1,12 @@
+import time
+
+import groq
 from groq import Groq
 from groq.types.chat import ChatCompletion
 
 from llm_api import LlmApi, types_request
 from llm_api.abc import ResponseAndUsage, Usage
+from llm_api.text import print_warning
 
 
 class GroqApi(LlmApi):
@@ -26,11 +30,27 @@ class GroqApi(LlmApi):
         if tools is not None:
             raise NotImplementedError("Tools not implemented yet")
 
-        # See https://console.groq.com/docs/text-chat
-        chat_completion = self._client.chat.completions.create(
-            messages=messages,
-            model=self.model,
-        )
+        try_number = 1
+        max_tries = 3
+        retry_delay = 30
+        while True:
+            try:
+                # See https://console.groq.com/docs/text-chat
+                chat_completion = self._client.chat.completions.create(
+                    messages=messages,
+                    model=self.model,
+                )
+                break
+            except groq.RateLimitError as e:
+                print_warning(
+                    f"Rate Limit Exceeded: {e.message}. Retrying in {retry_delay} seconds..."
+                )
+                if try_number >= max_tries:
+                    raise e
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                try_number += 1
+
         usage = self.parse_usage(chat_completion, tag=tag)
         return ResponseAndUsage(chat_completion.choices[0].message.content, usage)
 
