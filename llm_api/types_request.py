@@ -22,5 +22,6 @@ MessageRole = Literal["assistant", "user", "system", "tool"]
 class Message(TypedDict):
     role: MessageRole
     content: str
+    name: NotRequired[str]  # Added, not part of official OpenRouter API
     tools: NotRequired[list[Tool]]
     tool_choice: NotRequired[ToolChoice]
