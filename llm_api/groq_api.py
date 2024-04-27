@@ -1,4 +1,5 @@
 import time
+from typing import Literal
 
 import groq
 from groq import Groq
@@ -26,25 +27,33 @@ class GroqApi(LlmApi):
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
+        response_format: Literal["json"] = None,
     ) -> ResponseAndUsage:
-        if tools is not None:
-            raise NotImplementedError("Tools not implemented yet")
 
         try_number = 1
         max_tries = 3
         retry_delay = 30
         while True:
             try:
+                groq_kwargs = {
+                    "messages": messages,
+                    "model": self.model,
+                }
+                if tools is not None:
+                    groq_kwargs["tools"] = tools
+                if response_format == "json":
+                    groq_kwargs["response_format"] = "json"
+
                 # See https://console.groq.com/docs/text-chat
-                chat_completion = self._client.chat.completions.create(
-                    messages=messages,
-                    model=self.model,
-                )
+                chat_completion = self._client.chat.completions.create(**groq_kwargs)
+
                 break
-            except groq.RateLimitError as e:
-                print_warning(
-                    f"Rate Limit Exceeded: {e.message}. Retrying in {retry_delay} seconds..."
-                )
+            except (
+                groq.RateLimitError,
+                groq.BadRequestError,
+                groq.APITimeoutError,
+            ) as e:
+                print_warning(f"{e.message} - retrying in {retry_delay} seconds...")
                 if try_number >= max_tries:
                     raise e
                 time.sleep(retry_delay)

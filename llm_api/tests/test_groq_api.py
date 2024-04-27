@@ -1,11 +1,38 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-import groq.types.chat.chat_completion
+import groq
+from groq.types.chat import chat_completion
 import httpx
 
 import llm_api.abc
 from llm_api.groq_api import GroqApi
+from llm_api import types_request
+
+
+def mock_completion_factory() -> chat_completion.ChatCompletion:
+    choices = [
+        chat_completion.Choice(
+            finish_reason="test",
+            index=1,
+            logprobs=chat_completion.ChoiceLogprobs(),
+            message=chat_completion.ChoiceMessage(content="test", role="user"),
+        ),
+    ]
+    u = chat_completion.Usage()
+    return chat_completion.ChatCompletion(choices=choices, usage=u)
+
+
+def mock_tool_factory() -> list[types_request.Tool]:
+    tools = [
+        types_request.Tool(
+            type="function",
+            function=types_request.FunctionDescription(
+                description="test function", name="test", parameters={}
+            ),
+        )
+    ]
+    return tools
 
 
 class TestGroqApi(TestCase):
@@ -79,6 +106,59 @@ class TestGroqApi(TestCase):
         )
         self.assertEqual(
             2, len(mock_sleep.call_args_list), "Should sleep 2 times between tries"
+        )
+
+    def test_response_format_passed_to_groq(self):
+        mock_completion = mock_completion_factory()
+        self.api._client.chat.completions.create = Mock(return_value=mock_completion)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+            response_format="json",
+        )
+        self.assertEqual(
+            "json",
+            self.api._client.chat.completions.create.call_args.kwargs[
+                "response_format"
+            ],
+            "Response format should be passed to groq api",
+        )
+
+    def test_response_format_not_passed_to_groq(self):
+        mock_completion = mock_completion_factory()
+        self.api._client.chat.completions.create = Mock(return_value=mock_completion)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+        )
+        self.assertNotIn(
+            "response_format",
+            self.api._client.chat.completions.create.call_args.kwargs,
+            "Response format should not be passed to groq api",
+        )
+
+    def test_tools_passed_to_groq(self):
+        mock_completion = mock_completion_factory()
+        mock_tools = mock_tool_factory()
+        self.api._client.chat.completions.create = Mock(return_value=mock_completion)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+            tools=mock_tools,
+        )
+        self.assertEqual(
+            mock_tools,
+            self.api._client.chat.completions.create.call_args.kwargs["tools"],
+            "Tools should be passed to groq api",
+        )
+
+    def test_tools_not_passed_to_groq(self):
+        mock_completion = mock_completion_factory()
+        self.api._client.chat.completions.create = Mock(return_value=mock_completion)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+        )
+        self.assertNotIn(
+            "tools",
+            self.api._client.chat.completions.create.call_args.kwargs,
+            "Tools should not be passed to groq api",
         )
 
     # TODO: actual tests for actual completions

@@ -38,7 +38,20 @@ class TestLlmApi(TestCase):
         messages = [{"role": "user", "content": "Hello"}]
         self.api.response_from_messages(messages)
         self.api._response_from_messages_implementation.assert_called_once_with(
-            messages=messages, tools=None, tag=None
+            messages=messages,
+            tools=None,
+            tag=None,
+            response_format=None,
+        )
+
+    def test__response_from_messages_implementation_called_with_response_format(self):
+        messages = [{"role": "user", "content": "Hello"}]
+        self.api.response_from_messages(messages, response_format="json")
+        self.api._response_from_messages_implementation.assert_called_once_with(
+            messages=messages,
+            tools=None,
+            tag=None,
+            response_format="json",
         )
 
     def test_handle_usage_once(self):
@@ -60,9 +73,20 @@ class TestLlmApi(TestCase):
         )
         result = self.api.response_from_prompt("Test prompt")
         self.api.response_from_messages.assert_called_once_with(
-            [{"role": "user", "content": "Test prompt"}], tag=None
+            [{"role": "user", "content": "Test prompt"}],
+            tag=None,
+            response_format=None,
         )
         self.assertEqual("Test response", result)
+
+    def test_response_from_prompt_passes_response_format(self):
+        self.api.response_from_messages = Mock(name="response_from_messages")
+        self.api.response_from_prompt("Test prompt", response_format="json")
+        self.api.response_from_messages.assert_called_once_with(
+            [{"role": "user", "content": "Test prompt"}],
+            tag=None,
+            response_format="json",
+        )
 
     def test_configuration_error_raised_when_no_api_key_set(self):
         with self.assertRaises(ConfigurationError):

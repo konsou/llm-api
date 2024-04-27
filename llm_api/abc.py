@@ -1,11 +1,11 @@
 import os
 from abc import ABC, abstractmethod
-from typing import NamedTuple
+from typing import NamedTuple, Literal
 
 from dotenv import load_dotenv
 
 from . import types_request
-from .text import print_yellow, print_cost
+from .text import print_cost
 
 
 class ConfigurationError(Exception):
@@ -47,6 +47,7 @@ class LlmApi(ABC):
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
+        response_format: Literal["json"] | None = None,
     ) -> ResponseAndUsage:
         pass
 
@@ -55,11 +56,15 @@ class LlmApi(ABC):
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
         tag: str | None = None,
+        response_format: Literal["json"] | None = None,
     ) -> str:
         response: str
         usage: Usage
         response, usage = self._response_from_messages_implementation(
-            messages=messages, tools=tools, tag=tag
+            messages=messages,
+            tools=tools,
+            tag=tag,
+            response_format=response_format,
         )
         self.handle_usage(
             input_tokens=usage.input_tokens,
@@ -73,9 +78,12 @@ class LlmApi(ABC):
         self,
         prompt: str,
         tag: str | None = None,
+        response_format: Literal["json"] | None = None,
     ) -> str:
         return self.response_from_messages(
-            [{"role": "user", "content": prompt}], tag=tag
+            [{"role": "user", "content": prompt}],
+            tag=tag,
+            response_format=response_format,
         )
 
     def handle_usage(
