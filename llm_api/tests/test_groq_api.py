@@ -116,11 +116,11 @@ class TestGroqApi(TestCase):
             response_format="json",
         )
         self.assertEqual(
-            "json",
+            {"type": "json_object"},
             self.api._client.chat.completions.create.call_args.kwargs[
                 "response_format"
             ],
-            "Response format should be passed to groq api",
+            "Response format should be passed to groq api in the correct form",
         )
 
     def test_response_format_not_passed_to_groq(self):

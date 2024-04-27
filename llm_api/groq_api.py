@@ -42,7 +42,7 @@ class GroqApi(LlmApi):
                 if tools is not None:
                     groq_kwargs["tools"] = tools
                 if response_format == "json":
-                    groq_kwargs["response_format"] = "json"
+                    groq_kwargs["response_format"] = {"type": "json_object"}
 
                 # See https://console.groq.com/docs/text-chat
                 chat_completion = self._client.chat.completions.create(**groq_kwargs)
