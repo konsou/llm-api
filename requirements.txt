@@ -5,3 +5,4 @@ black
 build
 pytest
 groq
+openai
