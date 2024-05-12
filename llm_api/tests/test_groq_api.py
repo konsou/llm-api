@@ -161,4 +161,19 @@ class TestGroqApi(TestCase):
             "Tools should not be passed to groq api",
         )
 
+    def test_tool_choice_passed_to_groq(self):
+        mock_completion = mock_completion_factory()
+        mock_tools = mock_tool_factory()
+        self.api._client.chat.completions.create = Mock(return_value=mock_completion)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+            tools=mock_tools,
+            tool_choice="required",
+        )
+        self.assertEqual(
+            "required",
+            self.api._client.chat.completions.create.call_args.kwargs["tool_choice"],
+            "Tool choice should be passed to groq api",
+        )
+
     # TODO: actual tests for actual completions

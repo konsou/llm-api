@@ -1,4 +1,5 @@
 import json
+from typing import Literal
 
 import requests
 
@@ -19,7 +20,9 @@ class OpenRouterAPI(LlmApi):
         self,
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
+        tool_choice: Literal["auto", "required", "none"] = "auto",
         tag: str | None = None,
+        response_format: Literal["json"] | None = None,
     ) -> ResponseAndUsage:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {

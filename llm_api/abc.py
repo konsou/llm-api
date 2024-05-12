@@ -46,6 +46,7 @@ class LlmApi(ABC):
         self,
         messages: list[types_request.Message],
         tools: list[types_request.Tool] | None = None,
+        tool_choice: Literal["auto", "required", "none"] = "auto",
         tag: str | None = None,
         response_format: Literal["json"] | None = None,
     ) -> ResponseAndUsage:
