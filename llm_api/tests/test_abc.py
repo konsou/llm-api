@@ -40,6 +40,7 @@ class TestLlmApi(TestCase):
         self.api._response_from_messages_implementation.assert_called_once_with(
             messages=messages,
             tools=None,
+            tool_choice="auto",
             tag=None,
             response_format=None,
         )
@@ -50,8 +51,20 @@ class TestLlmApi(TestCase):
         self.api._response_from_messages_implementation.assert_called_once_with(
             messages=messages,
             tools=None,
+            tool_choice="auto",
             tag=None,
             response_format="json",
+        )
+
+    def test__response_from_messages_implementation_called_with_tool_choice(self):
+        messages = [{"role": "user", "content": "Hello"}]
+        self.api.response_from_messages(messages, tool_choice="none")
+        self.api._response_from_messages_implementation.assert_called_once_with(
+            messages=messages,
+            tools=None,
+            tool_choice="none",
+            tag=None,
+            response_format=None,
         )
 
     def test_handle_usage_once(self):
