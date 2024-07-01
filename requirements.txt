@@ -6,3 +6,4 @@ build
 pytest
 groq
 openai
+anthropic
