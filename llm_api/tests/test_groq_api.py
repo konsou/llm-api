@@ -7,7 +7,8 @@ import httpx
 
 import llm_api.abc
 from llm_api.groq_api import GroqApi
-from llm_api import types_request
+
+from .helpers import mock_tool_factory
 
 
 def mock_completion_factory() -> chat_completion.ChatCompletion:
@@ -32,18 +33,6 @@ def mock_completion_factory() -> chat_completion.ChatCompletion:
         object="chat.completion",
         usage=u,
     )
-
-
-def mock_tool_factory() -> list[types_request.Tool]:
-    tools = [
-        types_request.Tool(
-            type="function",
-            function=types_request.FunctionDescription(
-                description="test function", name="test", parameters={}
-            ),
-        )
-    ]
-    return tools
 
 
 class TestGroqApi(TestCase):
