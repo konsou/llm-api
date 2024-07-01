@@ -1,9 +1,10 @@
+import json
 import logging
 import time
-from typing import Literal
+from typing import Literal, NamedTuple
 
 import anthropic
-from anthropic.types import TextBlock, ToolUseBlock
+from anthropic.types import TextBlock, ToolUseBlock, ContentBlock
 
 from llm_api import LlmApi, types_request
 from llm_api.abc import ResponseAndUsage, Usage
@@ -16,6 +17,10 @@ PRICING_PER_MTOK = {
         "output": 15,
     },
 }
+
+
+class ToolUseResult(NamedTuple):
+    tool_used: bool
 
 
 class AnthropicApi(LlmApi):
@@ -79,10 +84,20 @@ class AnthropicApi(LlmApi):
 
         usage = self.parse_usage(response_message, tag=tag)
 
-        response_content: TextBlock | ToolUseBlock = response_message.content[0]
-        parsed_response_content: str = self._parse_response_content(response_content)
-
+        parsed_response_content: str = self._parse_content(response_message.content)
         return ResponseAndUsage(parsed_response_content, usage)
+
+    def _parse_content(self, content: list[ContentBlock]) -> str:
+        """
+        If there's only one piece of content AND it's text -> return it as a plain string
+
+        In any other case the content contains multiple messages (either text or tool calls)
+        Return a JSON list of the contents as a string in that case."""
+        if len(content) == 1 and isinstance(content[0], TextBlock):
+            return content[0].text
+
+        content_string_list = [str(o.__dict__) for o in content]
+        return json.dumps(content_string_list, ensure_ascii=False, indent=2)
 
     def _convert_tools_to_anthropic_format(
         self, tools: list[types_request.Tool] | None
@@ -114,16 +129,6 @@ class AnthropicApi(LlmApi):
             return {"type": "any"}
         # Return "auto" for both "auto" and "none"
         return {"type": "auto"}
-
-    def _parse_response_content(
-        self, response_content: TextBlock | ToolUseBlock
-    ) -> str:
-        if isinstance(response_content, TextBlock):
-            return response_content.text
-        else:
-            raise NotImplementedError(
-                f"Unsupported response content type: {type(response_content)}"
-            )
 
     def parse_usage(
         self, message: anthropic.types.Message, tag: str | None = None
@@ -160,5 +165,31 @@ class AnthropicApi(LlmApi):
 
 if __name__ == "__main__":
     api = AnthropicApi(model="claude-3-5-sonnet-20240620")
-    response = api.response_from_prompt("test test")
+    response = api.response_from_messages(
+        messages=[
+            types_request.Message(
+                role="user", content="What's the stock price for Microsoft?"
+            )
+        ],
+        tools=[
+            types_request.Tool(
+                type="function",
+                function=types_request.FunctionDescription(
+                    description="Retrieves the current stock price for a given ticker symbol. The ticker symbol must be a valid symbol for a publicly traded company on a major US stock exchange like NYSE or NASDAQ. The tool will return the latest trade price in USD. It should be used when the user asks about the current or most recent price of a specific stock. It will not provide any other information about the stock or company.",
+                    name="get_stock_price",
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "ticker": {
+                                "type": "string",
+                                "description": "The stock ticker symbol, e.g. AAPL for Apple Inc.",
+                            }
+                        },
+                        "required": ["ticker"],
+                    },
+                ),
+            )
+        ],
+        tool_choice="auto",
+    )
     print(response)
