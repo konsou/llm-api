@@ -44,6 +44,10 @@ class AnthropicApi(LlmApi):
         response_format: Literal["json"] = None,
     ) -> ResponseAndUsage:
 
+        # TODO: Anthropic doesn't seem to support system messages or the `name` field
+        # - Convert system messages to user messages and prepend "System:"
+        # - Prepend "Name:" if `name` is included
+
         try_number = 1
         max_tries = 3
         retry_delay = 30
