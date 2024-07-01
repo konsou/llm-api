@@ -50,10 +50,9 @@ class AnthropicApi(LlmApi):
                     "max_tokens": 4096,
                 }
                 if tools is not None:
+                    # Anthropic doesn't use `response_format` - instead, JSON is returned if a tool is used
                     completion_kwargs["tools"] = tools
                     completion_kwargs["tool_choice"] = (tool_choice,)
-                if response_format == "json":
-                    completion_kwargs["response_format"] = {"type": "json_object"}
 
                 response_message: anthropic.types.Message = (
                     self._client.messages.create(**completion_kwargs)
