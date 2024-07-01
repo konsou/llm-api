@@ -42,6 +42,12 @@ class AnthropicApi(LlmApi):
         try_number = 1
         max_tries = 3
         retry_delay = 30
+
+        converted_tools = self._convert_tools_to_anthropic_format(tools)
+        converted_tool_choice = self._convert_tool_choice_to_anthropic_format(
+            tool_choice
+        )
+
         while True:
             try:
                 completion_kwargs = {
@@ -51,8 +57,8 @@ class AnthropicApi(LlmApi):
                 }
                 if tools is not None:
                     # Anthropic doesn't use `response_format` - instead, JSON is returned if a tool is used
-                    completion_kwargs["tools"] = tools
-                    completion_kwargs["tool_choice"] = (tool_choice,)
+                    completion_kwargs["tools"] = converted_tools
+                    completion_kwargs["tool_choice"] = converted_tool_choice
 
                 response_message: anthropic.types.Message = (
                     self._client.messages.create(**completion_kwargs)
@@ -77,6 +83,37 @@ class AnthropicApi(LlmApi):
         parsed_response_content: str = self._parse_response_content(response_content)
 
         return ResponseAndUsage(parsed_response_content, usage)
+
+    def _convert_tools_to_anthropic_format(
+        self, tools: list[types_request.Tool] | None
+    ) -> list[anthropic.types.ToolParam] | None:
+        if tools is None:
+            return None
+
+        converted_tools: list[anthropic.types.ToolParam] = []
+        for tool in tools:
+            converted_tools.append(
+                anthropic.types.ToolParam(
+                    input_schema=tool["function"]["parameters"],  # type: ignore
+                    name=tool["function"]["name"],
+                    description=tool["function"]["description"],
+                )
+            )
+        return converted_tools
+
+    def _convert_tool_choice_to_anthropic_format(
+        self, tool_choice: Literal["auto", "required", "none"]
+    ) -> anthropic.types.message_create_params.ToolChoice:
+        """
+        NOTE 1: Current way of implementation doesn't support the Anthropic way to force the use of a predefined tool
+        NOTE 2: "none" is not supported - just don't supply tools if you don't want to use them
+
+        See https://docs.anthropic.com/en/docs/build-with-claude/tool-use#forcing-tool-use
+        """
+        if tool_choice == "required":
+            return {"type": "any"}
+        # Return "auto" for both "auto" and "none"
+        return {"type": "auto"}
 
     def _parse_response_content(
         self, response_content: TextBlock | ToolUseBlock

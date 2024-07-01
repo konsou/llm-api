@@ -3,12 +3,13 @@ from unittest.mock import patch, Mock
 
 import anthropic
 import httpx
-from anthropic.types import TextBlock, Usage, Message
+from anthropic.types import TextBlock, Usage, Message, ToolParam
 
 import llm_api.abc
 import llm_api.anthropic_api
 from llm_api.anthropic_api import AnthropicApi
-from llm_api import types_request
+
+from .helpers import mock_tool_factory
 
 
 def mock_response_message_factory() -> anthropic.types.Message:
@@ -28,18 +29,6 @@ def mock_response_message_factory() -> anthropic.types.Message:
         type="message",
         usage=u,
     )
-
-
-# def mock_tool_factory() -> list[types_request.Tool]:
-#     tools = [
-#         types_request.Tool(
-#             type="function",
-#             function=types_request.FunctionDescription(
-#                 description="test function", name="test", parameters={}
-#             ),
-#         )
-#     ]
-#     return tools
 
 
 class TestAnthropicApi(TestCase):
@@ -136,44 +125,26 @@ class TestAnthropicApi(TestCase):
             2, len(mock_sleep.call_args_list), "Should sleep 2 times between tries"
         )
 
-    # def test_response_format_passed_to_anthropic(self):
-    #     mock_response_message = mock_response_message_factory()
-    #     self.api._client.messages.create = Mock(return_value=mock_response_message)
-    #     self.api._response_from_messages_implementation(
-    #         [{"role": "user", "content": "test"}],
-    #         response_format="json",
-    #     )
-    #     self.assertEqual(
-    #         {"type": "json_object"},
-    #         self.api._client.messages.create.call_args.kwargs["response_format"],
-    #         "Response format should be passed to anthropic api in the correct form",
-    #     )
-
-    def test_response_format_not_passed_to_anthropic(self):
+    def test_tools_passed_to_anthropic(self):
         mock_response_message = mock_response_message_factory()
+        mock_tools = mock_tool_factory()
         self.api._client.messages.create = Mock(return_value=mock_response_message)
         self.api._response_from_messages_implementation(
             [{"role": "user", "content": "test"}],
+            tools=mock_tools,
         )
-        self.assertNotIn(
-            "response_format",
-            self.api._client.messages.create.call_args.kwargs,
-            "Response format should not be passed to anthropic api",
+        tools_in_anthropic_format = [
+            ToolParam(
+                input_schema=mock_tools[0]["function"]["parameters"],  # type: ignore
+                name="test",
+                description="test function",
+            )
+        ]
+        self.assertEqual(
+            tools_in_anthropic_format,
+            self.api._client.messages.create.call_args.kwargs["tools"],
+            "Tools should be passed to anthropic api in correct format",
         )
-
-    # def test_tools_passed_to_anthropic(self):
-    #     mock_response_message = mock_response_message_factory()
-    #     mock_tools = mock_tool_factory()
-    #     self.api._client.chat.completions.create = Mock(return_value=mock_response_message)
-    #     self.api._response_from_messages_implementation(
-    #         [{"role": "user", "content": "test"}],
-    #         tools=mock_tools,
-    #     )
-    #     self.assertEqual(
-    #         mock_tools,
-    #         self.api._client.chat.completions.create.call_args.kwargs["tools"],
-    #         "Tools should be passed to anthropic api",
-    #     )
 
     def test_tools_not_passed_to_anthropic(self):
         mock_response_message = mock_response_message_factory()
@@ -184,22 +155,22 @@ class TestAnthropicApi(TestCase):
         self.assertNotIn(
             "tools",
             self.api._client.messages.create.call_args.kwargs,
-            "Tools should not be passed to anthropic api",
+            "Tools should not be passed to anthropic api in correct format",
         )
 
-    # def test_tool_choice_passed_to_anthropic(self):
-    #     mock_completion = mock_response_message_factory()
-    #     mock_tools = mock_tool_factory()
-    #     self.api._client.chat.completions.create = Mock(return_value=mock_completion)
-    #     self.api._response_from_messages_implementation(
-    #         [{"role": "user", "content": "test"}],
-    #         tools=mock_tools,
-    #         tool_choice="required",
-    #     )
-    #     self.assertEqual(
-    #         "required",
-    #         self.api._client.chat.completions.create.call_args.kwargs["tool_choice"],
-    #         "Tool choice should be passed to anthropic api",
-    #     )
+    def test_tool_choice_passed_to_anthropic(self):
+        mock_response_message = mock_response_message_factory()
+        mock_tools = mock_tool_factory()
+        self.api._client.messages.create = Mock(return_value=mock_response_message)
+        self.api._response_from_messages_implementation(
+            [{"role": "user", "content": "test"}],
+            tools=mock_tools,
+            tool_choice="required",
+        )
+        self.assertEqual(
+            {"type": "any"},
+            self.api._client.messages.create.call_args.kwargs["tool_choice"],
+            "Tool choice should be passed to anthropic api in correct format",
+        )
 
     # TODO: actual tests for actual completions
