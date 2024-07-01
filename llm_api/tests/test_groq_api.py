@@ -13,14 +13,25 @@ from llm_api import types_request
 def mock_completion_factory() -> chat_completion.ChatCompletion:
     choices = [
         chat_completion.Choice(
-            finish_reason="test",
+            finish_reason="stop",
             index=1,
             logprobs=chat_completion.ChoiceLogprobs(),
-            message=chat_completion.ChoiceMessage(content="test", role="user"),
+            message=chat_completion.ChatCompletionMessage(
+                content="test", role="assistant"
+            ),
         ),
     ]
-    u = chat_completion.Usage()
-    return chat_completion.ChatCompletion(choices=choices, usage=u)
+    u = groq.types.completion_usage.CompletionUsage(
+        completion_tokens=1, prompt_tokens=2, total_tokens=3
+    )
+    return chat_completion.ChatCompletion(
+        id="test-id",
+        choices=choices,
+        created=123,
+        model="test-model",
+        object="chat.completion",
+        usage=u,
+    )
 
 
 def mock_tool_factory() -> list[types_request.Tool]:
@@ -60,7 +71,7 @@ class TestGroqApi(TestCase):
 
     def test_parse_usage(self):
         mock_completion = Mock(spec=groq.types.chat.ChatCompletion)
-        mock_completion.usage = groq.types.chat.chat_completion.Usage(
+        mock_completion.usage = groq.types.completion_usage.CompletionUsage(
             prompt_tokens=1,
             completion_tokens=2,
             total_tokens=3,
@@ -74,7 +85,7 @@ class TestGroqApi(TestCase):
 
     def test_parse_usage_with_tag(self):
         mock_completion = Mock(spec=groq.types.chat.ChatCompletion)
-        mock_completion.usage = groq.types.chat.chat_completion.Usage(
+        mock_completion.usage = groq.types.completion_usage.CompletionUsage(
             prompt_tokens=1,
             completion_tokens=2,
             total_tokens=3,
