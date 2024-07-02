@@ -4,12 +4,13 @@ import time
 from typing import Literal, NamedTuple
 
 import anthropic
-from anthropic.types import TextBlock, ToolUseBlock, ContentBlock
+from anthropic.types import TextBlock, ContentBlock
 
 from llm_api import LlmApi, types_request
 from llm_api.abc import ResponseAndUsage, Usage
 
 logger = logging.getLogger(__name__)
+logger.propagate = True
 
 PRICING_PER_MTOK = {
     "claude-3-5-sonnet-20240620": {
