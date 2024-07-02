@@ -63,8 +63,6 @@ class AnthropicApi(LlmApi):
         # Anthropic doesn't support `name` fields - convert them to text
         non_system_messages = self._convert_message_name_fields(non_system_messages)
 
-        # TODO: merge consecutive messages with same role
-
         while True:
             try:
                 completion_kwargs = {
