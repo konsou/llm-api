@@ -16,6 +16,10 @@ class OpenRouterAPI(LlmApi):
     ):
         super().__init__(model=model, api_key_name=api_key_name, timeout=timeout)
 
+    @property
+    def requires_alternating_roles(self) -> bool:
+        raise NotImplementedError
+
     def _response_from_messages_implementation(
         self,
         messages: list[types_request.Message],

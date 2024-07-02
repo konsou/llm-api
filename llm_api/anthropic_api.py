@@ -40,6 +40,10 @@ class AnthropicApi(LlmApi):
             api_key=self.api_key,
         )
 
+    @property
+    def requires_alternating_roles(self) -> bool:
+        return True
+
     def _response_from_messages_implementation(
         self,
         messages: list[types_request.Message],

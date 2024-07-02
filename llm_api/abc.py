@@ -41,6 +41,12 @@ class LlmApi(ABC):
         if not self.api_key:
             raise ConfigurationError(f"{api_key_name} env var is not set")
 
+    @property
+    @abstractmethod
+    def requires_alternating_roles(self) -> bool:
+        """Whether the model requires consecutive messages to have alternating roles"""
+        pass
+
     @abstractmethod
     def _response_from_messages_implementation(
         self,

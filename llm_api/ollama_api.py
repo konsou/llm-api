@@ -26,6 +26,10 @@ class OllamaApi(LlmApi):
             api_key=self.api_key,  # required, but unused
         )
 
+    @property
+    def requires_alternating_roles(self) -> bool:
+        raise NotImplementedError
+
     def _response_from_messages_implementation(
         self,
         messages: list[types_request.Message],
