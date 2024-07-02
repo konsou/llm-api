@@ -95,20 +95,29 @@ class AnthropicApi(LlmApi):
 
         usage = self.parse_usage(response_message, tag=tag)
 
-        parsed_response_content: str = self._parse_content(response_message.content)
+        parsed_response_content: str = self._parse_content(
+            response_message.content, response_format=response_format
+        )
         return ResponseAndUsage(parsed_response_content, usage)
 
-    def _parse_content(self, content: list[ContentBlock]) -> str:
+    def _parse_content(
+        self, content: list[ContentBlock], response_format: Literal["json"] = None
+    ) -> str:
         """
-        If there's only one piece of content AND it's text -> return it as a plain string
+        If there's only one piece of content AND it's text AND response_format is not json
+         -> return it as a plain string
 
         In any other case the content contains multiple messages (either text or tool calls)
         Return a JSON list of the contents as a string in that case."""
-        if len(content) == 1 and isinstance(content[0], TextBlock):
+        if (
+            response_format != "json"
+            and len(content) == 1
+            and isinstance(content[0], TextBlock)
+        ):
             return content[0].text
 
-        content_string_list = [str(o.__dict__) for o in content]
-        return json.dumps(content_string_list, ensure_ascii=False, indent=2)
+        content_dicts = [o.__dict__ for o in content]
+        return json.dumps(content_dicts, ensure_ascii=False, indent=2)
 
     def _convert_message_name_fields(
         self, messages: list[types_request.Message]
@@ -221,25 +230,26 @@ if __name__ == "__main__":
                 name="Erkki",
             ),
         ],
-        tools=[
-            types_request.Tool(
-                type="function",
-                function=types_request.FunctionDescription(
-                    description="Retrieves the current stock price for a given ticker symbol. The ticker symbol must be a valid symbol for a publicly traded company on a major US stock exchange like NYSE or NASDAQ. The tool will return the latest trade price in USD. It should be used when the user asks about the current or most recent price of a specific stock. It will not provide any other information about the stock or company.",
-                    name="get_stock_price",
-                    parameters={
-                        "type": "object",
-                        "properties": {
-                            "ticker": {
-                                "type": "string",
-                                "description": "The stock ticker symbol, e.g. AAPL for Apple Inc.",
-                            }
-                        },
-                        "required": ["ticker"],
-                    },
-                ),
-            )
-        ],
-        tool_choice="auto",
+        response_format="json",
+        # tools=[
+        #     types_request.Tool(
+        #         type="function",
+        #         function=types_request.FunctionDescription(
+        #             description="Retrieves the current stock price for a given ticker symbol. The ticker symbol must be a valid symbol for a publicly traded company on a major US stock exchange like NYSE or NASDAQ. The tool will return the latest trade price in USD. It should be used when the user asks about the current or most recent price of a specific stock. It will not provide any other information about the stock or company.",
+        #             name="get_stock_price",
+        #             parameters={
+        #                 "type": "object",
+        #                 "properties": {
+        #                     "ticker": {
+        #                         "type": "string",
+        #                         "description": "The stock ticker symbol, e.g. AAPL for Apple Inc.",
+        #                     }
+        #                 },
+        #                 "required": ["ticker"],
+        #             },
+        #         ),
+        #     )
+        # ],
+        # tool_choice="auto",
     )
     print(response)

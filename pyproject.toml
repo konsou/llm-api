@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api"
-version = "2024.07.02.1"
+version = "2024.07.02.2"
 authors = [{name = "Tomi Javanainen", email = "tomi.javanainen@gmail.com"}]
 description = "A simple wrapper over LLM APIs"
 license = {file = "LICENSE"}
