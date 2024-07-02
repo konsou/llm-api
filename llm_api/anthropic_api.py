@@ -88,9 +88,13 @@ class AnthropicApi(LlmApi):
                 anthropic.BadRequestError,
                 anthropic.APITimeoutError,
             ) as e:
-                logger.warning(f"{e.message} - retrying in {retry_delay} seconds...")
+                should_retry = e.response.headers.get("x-should-retry") != "false"
+                if not should_retry:
+                    logger.info(f"x-should-retry header is false, not retrying")
+                    raise e
                 if try_number >= max_tries:
                     raise e
+                logger.warning(f"{e.message} - retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
                 retry_delay *= 2
                 try_number += 1
@@ -226,6 +230,11 @@ if __name__ == "__main__":
     response = api.response_from_messages(
         messages=[
             types_request.Message(role="system", content="Answer in haiku form"),
+            types_request.Message(
+                role="user",
+                content="What's the stock price for Microsoft?",
+                name="Erkki",
+            ),
             types_request.Message(
                 role="user",
                 content="What's the stock price for Microsoft?",
