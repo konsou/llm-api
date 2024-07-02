@@ -23,6 +23,11 @@ class ToolUseResult(NamedTuple):
     tool_used: bool
 
 
+class SystemPromptAndOtherMessages(NamedTuple):
+    system_prompt: str
+    other_messages: list[types_request.Message]
+
+
 class AnthropicApi(LlmApi):
     def __init__(
         self,
@@ -44,23 +49,25 @@ class AnthropicApi(LlmApi):
         response_format: Literal["json"] = None,
     ) -> ResponseAndUsage:
 
-        # TODO: Anthropic doesn't seem to support system messages or the `name` field
-        # - Convert system messages to user messages and prepend "System:"
-        # - Prepend "Name:" if `name` is included
-
         try_number = 1
         max_tries = 3
         retry_delay = 30
 
+        # Data conversion and juggling
         converted_tools = self._convert_tools_to_anthropic_format(tools)
         converted_tool_choice = self._convert_tool_choice_to_anthropic_format(
             tool_choice
         )
+        # Anthropic doesn't support system messages - instead, there has to be one `system` prompt
+        system_prompt, non_system_messages = self._extract_system_messages(messages)
+        # Anthropic doesn't support `name` fields - convert them to text
+        non_system_messages = self._convert_message_name_fields(non_system_messages)
 
         while True:
             try:
                 completion_kwargs = {
-                    "messages": messages,
+                    "messages": non_system_messages,
+                    "system": system_prompt,
                     "model": self.model,
                     "max_tokens": 4096,
                 }
@@ -102,6 +109,42 @@ class AnthropicApi(LlmApi):
 
         content_string_list = [str(o.__dict__) for o in content]
         return json.dumps(content_string_list, ensure_ascii=False, indent=2)
+
+    def _convert_message_name_fields(
+        self, messages: list[types_request.Message]
+    ) -> list[types_request.Message]:
+        """
+        Anthropic doesn't support a `name` field in Messages. Prepend the name to content.
+        """
+        converted_messages: list[types_request.Message] = []
+        for message in messages:
+            if "name" in message:
+                converted_messages.append(
+                    types_request.Message(
+                        content=f"{message['name']}: {message['content']}",
+                        role=message["role"],
+                    )
+                )
+            else:
+                converted_messages.append(message)
+        return converted_messages
+
+    def _extract_system_messages(
+        self, messages: list[types_request.Message]
+    ) -> SystemPromptAndOtherMessages:
+        system_messages: list[str] = []
+        other_messages: list[types_request.Message] = []
+
+        for message in messages:
+            if message["role"] == "system":
+                system_messages.append(message["content"])
+            else:
+                other_messages.append(message)
+
+        return SystemPromptAndOtherMessages(
+            system_prompt="\n".join(system_messages),
+            other_messages=other_messages,
+        )
 
     def _convert_tools_to_anthropic_format(
         self, tools: list[types_request.Tool] | None
@@ -171,9 +214,12 @@ if __name__ == "__main__":
     api = AnthropicApi(model="claude-3-5-sonnet-20240620")
     response = api.response_from_messages(
         messages=[
+            types_request.Message(role="system", content="Answer in haiku form"),
             types_request.Message(
-                role="user", content="What's the stock price for Microsoft?"
-            )
+                role="user",
+                content="What's the stock price for Microsoft?",
+                name="Erkki",
+            ),
         ],
         tools=[
             types_request.Tool(
