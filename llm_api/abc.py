@@ -89,6 +89,8 @@ class LlmApi(ABC):
             response_format=response_format,
         )
 
+    # TODO: function that always returns a JSON list of messages
+
     def handle_usage(
         self,
         input_tokens: int,
