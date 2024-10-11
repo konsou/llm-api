@@ -1,3 +1,4 @@
+import logging
 import time
 from typing import Literal
 
@@ -7,7 +8,9 @@ from groq.types.chat import ChatCompletion
 
 from llm_api import LlmApi, types_request
 from llm_api.abc import ResponseAndUsage, Usage
-from llm_api.text import print_warning
+
+
+logger = logging.getLogger(__name__)
 
 
 class GroqApi(LlmApi):
@@ -59,7 +62,7 @@ class GroqApi(LlmApi):
                 groq.BadRequestError,
                 groq.APITimeoutError,
             ) as e:
-                print_warning(f"{e.message} - retrying in {retry_delay} seconds...")
+                logger.warning(f"{e.message} - retrying in {retry_delay} seconds...")
                 if try_number >= max_tries:
                     raise e
                 time.sleep(retry_delay)
