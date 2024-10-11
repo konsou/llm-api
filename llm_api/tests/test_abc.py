@@ -106,3 +106,8 @@ class TestLlmApi(TestCase):
             MockLlmApiSubclass(
                 model="gpt-3", api_key_name="API_KEY_THAT_DOES_NOT_EXIST"
             )
+
+    @patch("builtins.print")
+    def test_handle_usage_no_printing(self, mock_print):
+        self.api.handle_usage(input_tokens=1, output_tokens=2, cost=3)
+        mock_print.assert_not_called()

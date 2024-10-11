@@ -1,4 +1,6 @@
 import os
+import logging
+
 from abc import ABC, abstractmethod
 from typing import NamedTuple, Literal
 
@@ -6,6 +8,8 @@ from dotenv import load_dotenv
 
 from . import types_request
 from .text import print_cost
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigurationError(Exception):
@@ -107,7 +111,7 @@ class LlmApi(ABC):
         if cost is not None:
             self.total_cost += cost
 
-        print_cost(
+        logger.info(
             f"{f'[{tag}] ' if tag else ''}"
             f"[{self.model}] "
             f"token usage: input {input_tokens} tokens, "
