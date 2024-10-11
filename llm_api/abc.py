@@ -7,7 +7,6 @@ from typing import NamedTuple, Literal
 from dotenv import load_dotenv
 
 from . import types_request
-from .text import print_cost
 
 logger = logging.getLogger(__name__)
 
