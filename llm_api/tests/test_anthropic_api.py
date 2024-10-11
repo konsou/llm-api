@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 
 import anthropic
 import httpx
@@ -104,10 +104,14 @@ class TestAnthropicApi(TestCase):
         self.assertEqual("test tag", u.tag)
 
     def test_rate_limit(self):
-        mock_create_message = Mock(
+        mock_create_message = MagicMock(
             side_effect=anthropic.RateLimitError(
                 "Test Rate Limit Error",
-                response=Mock(spec=httpx.Response, status_code=429),
+                response=MagicMock(
+                    spec=httpx.Response,
+                    status_code=429,
+                    headers={"request-id": "mock-id"},
+                ),
                 body=None,
             )
         )
